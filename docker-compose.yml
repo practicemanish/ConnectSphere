@@ -1,0 +1,28 @@
+# Local development services.
+# Values come from the .env file in this folder (Docker Compose loads it automatically).
+name: connectsphere
+
+services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in .env}
+    ports:
+      # Bind to 127.0.0.1 only, so other machines on the network cannot reach the dev DB.
+      # Host 5433 because a local PostgreSQL service already uses 5432.
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5433}:5432"
+    volumes:
+      # Postgres 18 images keep data under /var/lib/postgresql/<version>/...
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      # $$ escapes $ so the variable is read inside the container, not by Compose.
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:

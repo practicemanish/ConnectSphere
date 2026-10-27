@@ -1,0 +1,6 @@
+# Runtime dependencies (pinned so every machine installs the same versions).
+fastapi==0.162.0
+uvicorn[standard]==0.54.0
+pydantic-settings==2.16.1
+sqlalchemy[asyncio]==2.1.6
+asyncpg==0.32.0

@@ -35,7 +35,7 @@ PostgreSQL            Media storage (local disk in dev, S3-compatible later)
 | Routing | React Router | Standard SPA routing |
 | Server state | TanStack Query | Caching, refetching, pagination without hand-written state |
 | Backend | FastAPI | Async, automatic OpenAPI docs, Pydantic validation |
-| ORM | SQLAlchemy 2.x (async) + psycopg 3 | Typed models, works with WebSockets later |
+| ORM | SQLAlchemy 2.x (async) + asyncpg | Typed models, works with WebSockets later. asyncpg instead of psycopg because psycopg's async mode does not run on Windows' default ProactorEventLoop |
 | Migrations | Alembic | Versioned, reviewable schema changes |
 | Database | PostgreSQL 18 (Docker) | Relational data (follows, likes) fits SQL well; matches local `psql` 18 client |
 | Auth | Server-side sessions in Postgres + HttpOnly cookie | Real logout and "log out all devices"; token never readable by JS |
@@ -77,8 +77,24 @@ backend/app/modules/<feature>/
 | 9 | Search, private profiles, blocking, reporting, moderation |
 | 10 | Test coverage, security review, deployment, portfolio docs |
 
-## 6. Open decisions
+## 6. Request flow (Phase 1)
 
-- Python dependency tool: `pip` + `venv` (default) or `uv`. Decide in Phase 1.
+```
+HealthStatus.tsx -> useHealth() (TanStack Query) -> apiGet('/health') -> fetch('/api/health')
+  -> Vite dev proxy :5173 -> FastAPI :8000 -> health() router -> Depends(get_db) -> AsyncSession
+  -> SELECT 1 on PostgreSQL :5433 -> HealthResponse (Pydantic) -> JSON 200 / 503
+```
+
+In development the backend runs on the host (fast reload, easy debugging) and only
+PostgreSQL runs in Docker. The backend gets its own container in Phase 10.
+
+## 7. Decisions log
+
+- Phase 1: Python deps use `pip` + `venv` with pinned `requirements*.txt`.
+- Phase 1: Frontend calls relative `/api` paths; Vite proxies them in dev, so no CORS config.
+- Phase 1: TypeScript 6.0 (pinned by the Vite template) instead of 7.0.
+
+## 8. Open decisions
+
 - Redis: add only when rate limiting or multi-process WebSockets need it.
 - Deployment target: decide in Phase 10.
